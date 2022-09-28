@@ -1,4 +1,9 @@
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use serde_json::Value;
+
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
 
 pub enum Content {
     Folder(Vec<Bookmark>),
@@ -10,6 +15,35 @@ pub struct Bookmark {
     title: String,
     content: Content,
 }
+
+pub struct Config {
+    bookmark_file_path: String,
+}
+
+impl Config {
+    pub fn build(
+        mut args: impl Iterator<Item = String>,
+    ) -> Result<Config, &'static str> {
+        args.next();
+        let bookmark_file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("No bookmark file specified"),
+        };
+
+        Ok(Config { bookmark_file_path })
+    }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let file = File::open(config.bookmark_file_path)?;
+    let reader = BufReader::new(file);
+
+    let raw: Value = serde_json::from_reader(reader)?;
+
+    println!("checksum is {}", raw["checksum"]);
+    Ok(())
+}
+
 
 impl Bookmark {
     pub fn items(&self) -> Vec<String> {
