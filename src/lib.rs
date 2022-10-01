@@ -1,7 +1,5 @@
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 
-use roxmltree;
-
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
@@ -86,7 +84,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     traverse(&document.root(), "", &mut root);
 
-    println!("{:#?}", root);
+    prompt(&root);
 
     Ok(())
 }
@@ -105,12 +103,7 @@ impl Bookmark {
 
 }
 
-pub fn prompt() {
-    let root = Bookmark{
-        title: "root".to_string(),
-        content: Content::Folder(vec!(Bookmark{title: "google.com".to_string(), content: Content::Link("google.com".to_string())})),
-    };
-
+pub fn prompt(root: &Bookmark) {
     let items = root.items();
 
     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
