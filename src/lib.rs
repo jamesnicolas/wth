@@ -6,12 +6,14 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 
+#[derive(Debug)]
 pub enum Content {
     Folder(Vec<Bookmark>),
     Link(String),
     Search(String),
 }
 
+#[derive(Debug)]
 pub struct Bookmark {
     title: String,
     content: Content,
@@ -36,16 +38,6 @@ impl Config {
 }
 
 
-fn indent(amount: &u8) -> String {
-    let mut s = "".to_string();
-    let mut idx: u8 = *amount;
-    while idx > 0 {
-        s += " ";
-        idx -= 1;
-    }
-    return s
-}
-
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(config.bookmark_file_path).expect("Unaable to open the file");
     let mut contents = String::new();
@@ -55,49 +47,46 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = contents.replace("<DT>","").replace("<p>","");
 
     let document = roxmltree::Document::parse(&contents)?;
-    let root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
-    // dfs until we find an h* tag followed by a D* tag
+    let mut root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
 
-    let mut indentation: u8 = 0;
-
-    fn traverse(xml_node: &roxmltree::Node, indentation: &mut u8, parent_tag: &str) {
+    fn traverse(xml_node: &roxmltree::Node, parent_tag: &str, parent_bookmark: &mut Bookmark) {
         let mut tag_name: Option<&str> = None;
         match xml_node.node_type() {
             roxmltree::NodeType::Element =>  {
                 tag_name = Some(xml_node.tag_name().name());
                 if let Some(attribute) = xml_node.attribute("HREF") {
-                    println!("{}Bookmark Link: {}", indent(indentation), attribute);
+                    // since we're in an A tag, we can get the first child which should be text,
+                    // which should be the title
+                    let title: &str;
+                    match xml_node.children().next() {
+                        Some(text) => title = match text.node_type() {
+                            roxmltree::NodeType::Text => text.text().expect("Text.text() should always be Some(&str)"),
+                            _ => attribute,
+                        },
+                        None => title = attribute,
+                    };
+
+                    let bookmark = Bookmark { title: title.into(),  content: Content::Link(attribute.to_string()) };
+
+                    if let Content::Folder(content) = &mut parent_bookmark.content {
+                        content.push(bookmark);
+                    }
                 }
             },
             roxmltree::NodeType::Root => (),
-            roxmltree::NodeType::Text => {
-                match parent_tag {
-                    "DL" => (),
-                    "H3" => println!("{}Bookmark Folder: {}", indent(indentation), xml_node.text().expect("NodeType::Text should always have text()")),
-                    _ => (),
-                }
-            },
+            roxmltree::NodeType::Text => (),
             roxmltree::NodeType::Comment => return,
             roxmltree::NodeType::PI => return,
         }
-        if let Some(tag_name) = &tag_name {
-            if *tag_name == "DL" {
-                *indentation += 4;
-            }
-        }
         for xml_child in xml_node.children() {
-            traverse(&xml_child, indentation, tag_name.or(Some("")).unwrap());
-        }
-
-        if let Some(tag_name) = &tag_name {
-            if *tag_name == "DL" {
-                *indentation -= 4;
-            }
+            traverse(&xml_child, tag_name.or(Some("")).unwrap(), parent_bookmark);
         }
     }
 
 
-    traverse(&document.root(), &mut indentation, "");
+    traverse(&document.root(), "", &mut root);
+
+    println!("{:#?}", root);
 
     Ok(())
 }
