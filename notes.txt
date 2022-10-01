@@ -1,0 +1,71 @@
+
+
+xml = 
+[
+  {
+    "folder1": [
+      {
+        "folder2": [
+          "file1",
+          "file2"
+        ]
+      },
+      {
+        "folder3": [
+          "file3",
+          "file4"
+        ]
+      }
+    ]
+  },
+  {
+    "folder3": [
+      "file5",
+      "file6"
+    ]
+  }
+]
+
+bookmark = 
+[
+  {
+    "title": "folder1",
+    "content": [
+      {
+        "title": "folder2",
+        "content": [
+          "file1",
+          "file2"
+        ]
+      },
+      {
+        "title": "folder3",
+        "content": [
+          "file3",
+          "file4"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "folder3",
+    "content": [
+      "file5",
+      "file6"
+    ]
+  }
+]
+
+
+so we have our xml input, which is kind of weird this doc is just to try to
+help you understand the tree traversal without having to worry about rust
+
+essentially we are going to walk through the xml tree, and as we encounter new
+nodes, we're going to add them to the bookmark tree
+
+the part that gets rust specific is the references
+
+do we create the Bookmark at the same level of the xmlNode before, during or after?
+
+maybe as a first exercise, just do DFS, skip the unimportant nodes, and then print them
+then we can find out what to do

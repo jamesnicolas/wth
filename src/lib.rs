@@ -1,9 +1,10 @@
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
-use serde_json::Value;
+
+use roxmltree;
 
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::Read;
 
 pub enum Content {
     Folder(Vec<Bookmark>),
@@ -35,12 +36,32 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let file = File::open(config.bookmark_file_path)?;
-    let reader = BufReader::new(file);
+    let mut file = File::open(config.bookmark_file_path).expect("Unaable to open the file");
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).expect("Unable to read the file");
 
-    let raw: Value = serde_json::from_reader(reader)?;
+    // TODO: need a more robust replace in case people have weird bookmark titles or something
+    let contents = contents.replace("<DT>","").replace("<p>","");
 
-    println!("checksum is {}", raw["checksum"]);
+    let document = roxmltree::Document::parse(&contents)?;
+    let root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
+    // dfs until we find an h* tag followed by a D* tag
+
+    let xmlNode roxmltree::Node;
+
+    fn recurse(xmlNode: roxmltree::Node, &mut wthNode: Boookmark) {
+        if xmlNode.node_type != roxmltree::NodeType::Element {
+            continue
+        }
+        if xmlNode.has_children() {
+            for xmlChild in xmlNode.children() {
+                recurse(
+            }
+        } else {
+            wthNodej
+        }
+    }
+
     Ok(())
 }
 
