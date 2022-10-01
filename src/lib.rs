@@ -60,25 +60,44 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let mut indentation: u8 = 0;
 
-    fn traverse(xml_node: &roxmltree::Node, indentation: &mut u8) {
+    fn traverse(xml_node: &roxmltree::Node, indentation: &mut u8, parent_tag: &str) {
+        let mut tag_name: Option<&str> = None;
         match xml_node.node_type() {
             roxmltree::NodeType::Element =>  {
-                match xml_node.attribute("HREF") {
-                    Some(value) => println!("{}", value),
-                    None => (),
+                tag_name = Some(xml_node.tag_name().name());
+                if let Some(attribute) = xml_node.attribute("HREF") {
+                    println!("{}Bookmark Link: {}", indent(indentation), attribute);
                 }
             },
             roxmltree::NodeType::Root => (),
-            roxmltree::NodeType::Text => return,
+            roxmltree::NodeType::Text => {
+                match parent_tag {
+                    "DL" => (),
+                    "H3" => println!("{}Bookmark Folder: {}", indent(indentation), xml_node.text().expect("NodeType::Text should always have text()")),
+                    _ => (),
+                }
+            },
             roxmltree::NodeType::Comment => return,
             roxmltree::NodeType::PI => return,
         }
+        if let Some(tag_name) = &tag_name {
+            if *tag_name == "DL" {
+                *indentation += 4;
+            }
+        }
         for xml_child in xml_node.children() {
-            traverse(&xml_child, indentation);
+            traverse(&xml_child, indentation, tag_name.or(Some("")).unwrap());
+        }
+
+        if let Some(tag_name) = &tag_name {
+            if *tag_name == "DL" {
+                *indentation -= 4;
+            }
         }
     }
 
-    traverse(&document.root(), &mut indentation);
+
+    traverse(&document.root(), &mut indentation, "");
 
     Ok(())
 }

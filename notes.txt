@@ -69,3 +69,7 @@ do we create the Bookmark at the same level of the xmlNode before, during or aft
 
 maybe as a first exercise, just do DFS, skip the unimportant nodes, and then print them
 then we can find out what to do
+
+okay we made some progress, we are able to traverse the node tree, but now we need to be able to
+skip the extra text nodes under <DL> tags, and then get the H* tag out of the first child of the DL tag.
+note that H* tags have no children.
