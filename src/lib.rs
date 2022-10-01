@@ -44,23 +44,31 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = contents.replace("<DT>","").replace("<p>","");
 
     let document = roxmltree::Document::parse(&contents)?;
-    let root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
+    let _ = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
     // dfs until we find an h* tag followed by a D* tag
 
-    let xmlNode roxmltree::Node;
+    let mut indentation: u8 = 0;
 
-    fn recurse(xmlNode: roxmltree::Node, &mut wthNode: Boookmark) {
-        if xmlNode.node_type != roxmltree::NodeType::Element {
-            continue
+    fn indent(amount: &u8) -> String {
+        let mut s = "".to_string();
+        let mut idx: u8 = *amount;
+        while idx > 0 {
+            s += " ";
+            idx -= 1;
         }
-        if xmlNode.has_children() {
-            for xmlChild in xmlNode.children() {
-                recurse(
-            }
-        } else {
-            wthNodej
-        }
+        return s
     }
+
+    fn traverse(xml_node: &roxmltree::Node, indentation: &mut u8) {
+        println!("{}{:?}", indent(indentation), xml_node);
+        *indentation += 4;
+        for xml_child in xml_node.children() {
+            traverse(&xml_child, indentation);
+        }
+        *indentation -= 4;
+    }
+
+    traverse(&document.root(), &mut indentation);
 
     Ok(())
 }
