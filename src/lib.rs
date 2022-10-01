@@ -35,6 +35,17 @@ impl Config {
     }
 }
 
+
+fn indent(amount: &u8) -> String {
+    let mut s = "".to_string();
+    let mut idx: u8 = *amount;
+    while idx > 0 {
+        s += " ";
+        idx -= 1;
+    }
+    return s
+}
+
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(config.bookmark_file_path).expect("Unaable to open the file");
     let mut contents = String::new();
@@ -44,28 +55,27 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = contents.replace("<DT>","").replace("<p>","");
 
     let document = roxmltree::Document::parse(&contents)?;
-    let _ = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
+    let root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
     // dfs until we find an h* tag followed by a D* tag
 
     let mut indentation: u8 = 0;
 
-    fn indent(amount: &u8) -> String {
-        let mut s = "".to_string();
-        let mut idx: u8 = *amount;
-        while idx > 0 {
-            s += " ";
-            idx -= 1;
-        }
-        return s
-    }
-
     fn traverse(xml_node: &roxmltree::Node, indentation: &mut u8) {
-        println!("{}{:?}", indent(indentation), xml_node);
-        *indentation += 4;
+        match xml_node.node_type() {
+            roxmltree::NodeType::Element =>  {
+                match xml_node.attribute("HREF") {
+                    Some(value) => println!("{}", value),
+                    None => (),
+                }
+            },
+            roxmltree::NodeType::Root => (),
+            roxmltree::NodeType::Text => return,
+            roxmltree::NodeType::Comment => return,
+            roxmltree::NodeType::PI => return,
+        }
         for xml_child in xml_node.children() {
             traverse(&xml_child, indentation);
         }
-        *indentation -= 4;
     }
 
     traverse(&document.root(), &mut indentation);
