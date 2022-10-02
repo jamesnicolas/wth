@@ -74,9 +74,10 @@ okay we made some progress, we are able to traverse the node tree, but now we ne
 skip the extra text nodes under <DL> tags, and then get the H* tag out of the first child of the DL tag.
 note that H* tags have no children.
 
-cool we parsed the entire html file for bookmarks. we dodged non-closing tags by just removing them, but that shouldn't be too much of a problem
+cool we parsed the entire html file for bookmarks. we dodged non-closing tags
+by just removing them, but that shouldn't be too much of a problem
 next steps:
-- move the traverse function into parse.rs
+- [x] move the traverse function into parse.rs
 - go through the hierarchy of bookmarks in the fuzzy finder somehow
 - add functionality for Search bookmarks
-
+- write some tests

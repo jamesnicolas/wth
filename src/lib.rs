@@ -1,8 +1,12 @@
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 
+pub mod parse;
+
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+use std::fmt;
+use parse::xml_string_to_bookmark;
 
 #[derive(Debug)]
 pub enum Content {
@@ -35,83 +39,56 @@ impl Config {
     }
 }
 
+impl fmt::Display for Bookmark {
+    // TODO: do something about long urls/wrapping
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.content {
+            Content::Folder(_) => write!(f, "{} [...]", self.title),
+            Content::Link(link) => write!(f, "{} [{}]", self.title, link),
+            Content::Search(_) => write!(f, "{} [not implemented yet!]", self.title),
+        }
+    }
+}
+
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(config.bookmark_file_path).expect("Unaable to open the file");
     let mut contents = String::new();
     file.read_to_string(&mut contents).expect("Unable to read the file");
 
-    // TODO: need a more robust replace in case people have weird bookmark titles or something
-    let contents = contents.replace("<DT>","").replace("<p>","");
+    let root = xml_string_to_bookmark(contents)?;
 
-    let document = roxmltree::Document::parse(&contents)?;
-    let mut root = Bookmark { title: "root".into(), content: Content::Folder(vec!()) };
-
-    fn traverse(xml_node: &roxmltree::Node, parent_tag: &str, parent_bookmark: &mut Bookmark) {
-        let mut tag_name: Option<&str> = None;
-        match xml_node.node_type() {
-            roxmltree::NodeType::Element =>  {
-                tag_name = Some(xml_node.tag_name().name());
-                if let Some(attribute) = xml_node.attribute("HREF") {
-                    // since we're in an A tag, we can get the first child which should be text,
-                    // which should be the title
-                    let title: &str;
-                    match xml_node.children().next() {
-                        Some(text) => title = match text.node_type() {
-                            roxmltree::NodeType::Text => text.text().expect("Text.text() should always be Some(&str)"),
-                            _ => attribute,
-                        },
-                        None => title = attribute,
-                    };
-
-                    let bookmark = Bookmark { title: title.into(),  content: Content::Link(attribute.to_string()) };
-
-                    if let Content::Folder(content) = &mut parent_bookmark.content {
-                        content.push(bookmark);
-                    }
-                }
-            },
-            roxmltree::NodeType::Root => (),
-            roxmltree::NodeType::Text => (),
-            roxmltree::NodeType::Comment => return,
-            roxmltree::NodeType::PI => return,
-        }
-        for xml_child in xml_node.children() {
-            traverse(&xml_child, tag_name.or(Some("")).unwrap(), parent_bookmark);
-        }
-    }
-
-
-    traverse(&document.root(), "", &mut root);
-
-    prompt(&root);
+    root.prompt();
 
     Ok(())
 }
 
+pub fn goto(arg: impl fmt::Display) {
+    // TODO: Actually launch the browser here
+    println!("Going to {}...", arg)
+}
+
 
 impl Bookmark {
-    pub fn items(&self) -> Vec<String> {
+    pub fn new() -> Self {
+        Bookmark { title: "".into(), content: Content::Folder(vec!()) }
+    }
+    pub fn prompt(&self) {
         match &self.content {
             Content::Folder(folder) => {
-                folder.iter().map(|item| item.title.to_string()).collect::<Vec<String>>()
+                let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Select bookmark")
+                    .default(0)
+                    .items(folder)
+                    .interact()
+                    .unwrap();
+                let bookmark = &folder[selection];
+                bookmark.prompt();
             },
-            Content::Link(link) => vec!(link.to_string()),
-            Content::Search(search) => vec!(search.to_string()),
-        }
+            Content::Link(link) => goto(link),
+            Content::Search(search) => goto(search),
+        };
     }
 
 }
 
-pub fn prompt(root: &Bookmark) {
-    let items = root.items();
-
-    let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select bookmark")
-        .default(0)
-        .items(&items)
-        .interact()
-        .unwrap();
-
-    println!("You picked {}", items[selection]);
-}
