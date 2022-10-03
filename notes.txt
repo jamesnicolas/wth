@@ -81,3 +81,8 @@ next steps:
 - go through the hierarchy of bookmarks in the fuzzy finder somehow
 - add functionality for Search bookmarks
 - write some tests
+
+so looks like our parsing was bugged, but it's fixed now, at least for most cases.
+next we can look at serializing our bookmark format to save it to disk.
+i have a feeling this import from a bookmarks.html file won't really even be used lol
+but it was a good exercise I guess.
