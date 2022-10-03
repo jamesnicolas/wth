@@ -73,6 +73,10 @@ impl Bookmark {
     pub fn new() -> Self {
         Bookmark { title: "".into(), content: Content::Folder(vec!()) }
     }
+
+    pub fn new_link(title: String, content: String) -> Self {
+        Bookmark { title, content: Content::Link(content) }
+    }
     pub fn prompt(&self) {
         match &self.content {
             Content::Folder(folder) => {
