@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 dialoguer = { version = "0.10.2", features = ["fuzzy-select"] }
 roxmltree = "0.15.0"
+open = "3.0.3"

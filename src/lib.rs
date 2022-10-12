@@ -8,6 +8,8 @@ use std::io::Read;
 use std::fmt;
 use parse::xml_string_to_bookmark;
 
+use open;
+
 #[derive(Debug)]
 pub enum Content {
     Folder(Vec<Bookmark>),
@@ -63,9 +65,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn goto(arg: impl fmt::Display) {
-    // TODO: Actually launch the browser here
-    println!("Going to {}...", arg)
+pub fn goto(arg: impl fmt::Display + std::convert::AsRef<std::ffi::OsStr>) {
+    open::that(arg).unwrap();
 }
 
 
