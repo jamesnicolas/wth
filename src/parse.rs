@@ -20,14 +20,7 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
                     let child = xml_node.children().next().expect("name required");
                     if let roxmltree::NodeType::Text = child.node_type() {
                         let title = child.text().expect("Text.text() should always be Some(&str)").into();
-                        if xml_node.tag_name().name() != "A" {
-                            println!("Found folder {} {:#?}", title, xml_node)
-                        }
                         bookmark.title = title;
-                        if bookmark.title == "Deleted" {
-                            println!("{:#?}", xml_node);
-                        }
-
                     }
                 }
                 _ => bookmark.title = default.into(),
@@ -49,7 +42,6 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
         let mut child_option = xml_children.next();
         loop {
             if let Some(child) = child_option {
-                dbg!(child);
                 if let Some(h3) = h3_option {
                     let dl = child;
                     if dl.tag_name().name() != "DL" {
