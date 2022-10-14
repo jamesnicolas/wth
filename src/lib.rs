@@ -66,17 +66,27 @@ pub fn save(save_file_path: &str, bookmark: &Bookmark) {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let mut file = File::open(config.bookmark_file_path).expect("Unaable to open the file");
+    let mut file = File::open(&config.bookmark_file_path).expect("Unaable to open the file");
     let mut contents = String::new();
     file.read_to_string(&mut contents).expect("Unable to read the file");
 
-    let root = xml_string_to_bookmark(contents)?;
+    let mut root = xml_string_to_bookmark(contents)?;
 
     save(&config.save_file_path, &root);
+
+    root = load(&config);
 
     root.prompt();
 
     Ok(())
+}
+
+pub fn load(config: &Config) -> Bookmark {
+    let mut file = File::open(&config.save_file_path).expect("Unable to open the file");
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).expect("Unable to read the file");
+    let bookmark = ron::from_str(&contents).unwrap();
+    return bookmark
 }
 
 pub fn goto(arg: impl fmt::Display + std::convert::AsRef<std::ffi::OsStr>) {
