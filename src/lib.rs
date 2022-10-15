@@ -3,6 +3,7 @@ use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 pub mod parse;
 
 use std::error::Error;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -26,26 +27,13 @@ pub struct Bookmark {
 }
 
 pub struct Config {
-    bookmark_file_path: String,
-    save_file_path: String,
+    db: PathBuf,
+    import: Option<PathBuf>,
 }
 
 impl Config {
-    pub fn build(
-        mut args: impl Iterator<Item = String>,
-    ) -> Result<Config, &'static str> {
-        args.next();
-        let bookmark_file_path = match args.next() {
-            Some(arg) => arg,
-            None => return Err("No bookmark file specified"),
-        };
-
-        let save_file_path = match args.next() {
-            Some(arg) => arg,
-            None => return Err("No save file specified"),
-        };
-
-        Ok(Config { bookmark_file_path, save_file_path })
+    pub fn new(db: PathBuf, import: Option<PathBuf>) -> Self {
+        Config { db, import }
     }
 }
 
@@ -60,29 +48,34 @@ impl fmt::Display for Bookmark {
     }
 }
 
-pub fn save(save_file_path: &str, bookmark: &Bookmark) {
-    let mut file = File::create(save_file_path).expect("Unable to open the file");
+pub fn save(db: &Path, bookmark: &Bookmark) {
+    let path = std::path::Path::new(db);
+    let prefix = path.parent().unwrap();
+    std::fs::create_dir_all(prefix).unwrap();
+    let mut file = File::create(db).expect("Unable to open the file");
     file.write_all(ron::to_string(bookmark).expect("Unable to convert bookmark").as_bytes()).expect("Unable to write to file");
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let mut file = File::open(&config.bookmark_file_path).expect("Unaable to open the file");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Unable to read the file");
-
-    let mut root = xml_string_to_bookmark(contents)?;
-
-    save(&config.save_file_path, &root);
-
-    root = load(&config);
+    match config.import {
+        Some(import) => {
+            let mut file = File::open(&import).expect("Unaable to open the file");
+            let mut contents = String::new();
+            file.read_to_string(&mut contents).expect("Unable to read the file");
+            let bookmark = xml_string_to_bookmark(contents)?;
+            save(&config.db, &bookmark);
+        },
+        None => ()
+    }
+    let root = load(&config.db);
 
     root.prompt();
 
     Ok(())
 }
 
-pub fn load(config: &Config) -> Bookmark {
-    let mut file = File::open(&config.save_file_path).expect("Unable to open the file");
+pub fn load(db: &Path) -> Bookmark {
+    let mut file = File::open(db).expect("Unable to open the file");
     let mut contents = String::new();
     file.read_to_string(&mut contents).expect("Unable to read the file");
     let bookmark = ron::from_str(&contents).unwrap();

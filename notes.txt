@@ -89,3 +89,10 @@ but it was a good exercise I guess.
 
 okay so next let's have some options for importing bookmarks, but write to a .ron file and save that in .local or something
 can either do a subcommand, an optional arg like --import or whatever
+
+cool so we got the import subcommand working using clap, and we also configured wth to save to a data directory
+next we could probably clean up some unwraps, or deal with empty wth files, or something
+maybe just print a helpful message if wth is empty
+also can maybe switch to a more hackable format
+ron doesn't really seem writable, we could maybe just do yaml
+or we can do lua lmao
