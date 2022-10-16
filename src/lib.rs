@@ -48,12 +48,13 @@ impl fmt::Display for Bookmark {
     }
 }
 
-pub fn save(db: &Path, bookmark: &Bookmark) {
+pub fn save(db: &Path, bookmark: &Bookmark) -> Result<(), Box<dyn Error>> {
     let path = std::path::Path::new(db);
-    let prefix = path.parent().unwrap();
-    std::fs::create_dir_all(prefix).unwrap();
+    let prefix = path.parent().ok_or("invalid path")?;
+    std::fs::create_dir_all(prefix)?;
     let mut file = File::create(db).expect("Unable to open the file");
     file.write_all(ron::to_string(bookmark).expect("Unable to convert bookmark").as_bytes()).expect("Unable to write to file");
+    Ok(())
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -63,23 +64,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             let mut contents = String::new();
             file.read_to_string(&mut contents).expect("Unable to read the file");
             let bookmark = xml_string_to_bookmark(contents)?;
-            save(&config.db, &bookmark);
+            save(&config.db, &bookmark)?;
         },
         None => ()
     }
-    let root = load(&config.db);
+    let root = load(&config.db)?;
 
     root.prompt();
 
     Ok(())
 }
 
-pub fn load(db: &Path) -> Bookmark {
-    let mut file = File::open(db).expect("Unable to open the file");
+pub fn load(db: &Path) -> Result<Bookmark, Box<dyn Error>> {
+    let mut file = File::open(db)?;
     let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Unable to read the file");
-    let bookmark = ron::from_str(&contents).unwrap();
-    return bookmark
+    file.read_to_string(&mut contents)?;
+    let bookmark = ron::from_str(&contents)?;
+    return Ok(bookmark)
 }
 
 pub fn goto(arg: impl fmt::Display + std::convert::AsRef<std::ffi::OsStr>) {
@@ -111,6 +112,5 @@ impl Bookmark {
             Content::Search(search) => goto(search),
         };
     }
-
 }
 

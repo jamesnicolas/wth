@@ -42,14 +42,12 @@ fn main() {
         None => db_path,
     };
 
-    let import = match &cli.command {
-        Some(Commands::Import { path }) => {
-            Some(path)
-        },
-        None => None
-    };
-
-    let config = Config::new(db.into(), import.cloned());
+    let import = &cli.command.map(|command| {
+        match command {
+            Commands::Import{path} => path
+        }
+    });
+    let config = Config::new(db.into(), import.to_owned());
 
     if let Err(e) = wth::run(config) {
         eprintln!("Application error: {e}");
