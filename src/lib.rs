@@ -68,7 +68,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         },
         None => ()
     }
-    let root = load(&config.db)?;
+    let mut root = load(&config.db)?;
+
+    let add_test = Bookmark::new_link("brand new bookmark!".into(), "https://jamesnicolas.com".into());
+
+    root.add(add_test)?;
 
     root.prompt();
 
@@ -111,6 +115,16 @@ impl Bookmark {
             Content::Link(link) => goto(link),
             Content::Search(search) => goto(search),
         };
+    }
+
+    pub fn add(&mut self, other: Self) -> Result<(), Box<dyn Error>> {
+        match &mut self.content {
+            Content::Folder(folder) => {
+                folder.push(other);
+            },
+            _ => return Err("Cannot append to non-folder type".into()),
+        };
+        Ok(())
     }
 }
 
