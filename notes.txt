@@ -96,3 +96,13 @@ maybe just print a helpful message if wth is empty
 also can maybe switch to a more hackable format
 ron doesn't really seem writable, we could maybe just do yaml
 or we can do lua lmao
+or a DSL??
+
+or are we going to keep everything as an interface in the command line?
+
+i think we should probably just allow the user to edit the bookmark file
+but let them know it might get overwritten by wth
+
+let's create an "add bookmark" feature
+
+also i thjink i realized we should have two different types, bookmarks, and bookmark folders
