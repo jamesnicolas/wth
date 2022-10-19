@@ -10,6 +10,7 @@ use std::io::Write;
 use std::fmt;
 use parse::xml_string_to_bookmark;
 use serde::{Deserialize, Serialize};
+use clap::Subcommand;
 use open;
 use ron;
 
@@ -26,14 +27,31 @@ pub struct Bookmark {
     content: Content,
 }
 
+
+#[derive(Subcommand)]
+pub enum Action {
+    /// Imports a netscape bookmark file to path
+    Import {
+        path: PathBuf,
+    },
+
+    /// Adds a new bookmark to the db
+    Add {
+        url: String,
+    },
+
+    Go
+}
+
+
 pub struct Config {
     db: PathBuf,
-    import: Option<PathBuf>,
+    action: Action,
 }
 
 impl Config {
-    pub fn new(db: PathBuf, import: Option<PathBuf>) -> Self {
-        Config { db, import }
+    pub fn new(db: PathBuf, action: Action) -> Self {
+        Config { db, action }
     }
 }
 
@@ -58,23 +76,28 @@ pub fn save(db: &Path, bookmark: &Bookmark) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    match config.import {
-        Some(import) => {
-            let mut file = File::open(&import).expect("Unaable to open the file");
+
+    match config.action {
+        Action::Import{path} => {
+            let mut file = File::open(&path).expect("Unaable to open the file");
             let mut contents = String::new();
             file.read_to_string(&mut contents).expect("Unable to read the file");
             let bookmark = xml_string_to_bookmark(contents)?;
             save(&config.db, &bookmark)?;
+            println!("Imported {} to {}", &path.to_string_lossy(), &config.db.to_string_lossy());
         },
-        None => ()
+        Action::Add{url} => {
+            let mut root = load(&config.db)?;
+            let bookmark = Bookmark::new_link("New Bookmark".into(), url.clone());
+            root.add(bookmark)?;
+            save(&config.db, &root)?;
+            println!("Added {} to {}", &url, &config.db.to_string_lossy());
+        },
+        Action::Go => {
+            let root = load(&config.db)?;
+            root.prompt();
+        },
     }
-    let mut root = load(&config.db)?;
-
-    let add_test = Bookmark::new_link("brand new bookmark!".into(), "https://jamesnicolas.com".into());
-
-    root.add(add_test)?;
-
-    root.prompt();
 
     Ok(())
 }

@@ -1,28 +1,18 @@
 use std::process;
+use clap::Parser;
 use std::path::PathBuf;
 use directories::ProjectDirs;
-use wth::Config;
-
-use clap::{Parser, Subcommand};
+use wth::{Action, Config};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct Cli {
+pub struct Cli {
     /// Sets a custom db file
     #[arg(short, long)]
     db: Option<PathBuf>,
 
     #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// does testing things
-    Import {
-        /// lists test values
-        path: PathBuf,
-    },
+    action: Option<Action>,
 }
 
 fn main() {
@@ -42,12 +32,12 @@ fn main() {
         None => db_path,
     };
 
-    let import = &cli.command.map(|command| {
-        match command {
-            Commands::Import{path} => path
-        }
-    });
-    let config = Config::new(db.into(), import.to_owned());
+    let action = match cli.action {
+        Some(some_action) => some_action,
+        None => Action::Go,
+    };
+
+    let config = Config::new(db, action);
 
     if let Err(e) = wth::run(config) {
         eprintln!("Application error: {e}");
