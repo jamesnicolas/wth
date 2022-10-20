@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use dialoguer::{theme::ColorfulTheme, FuzzySelect, Input};
 
 pub mod parse;
 
@@ -11,6 +11,7 @@ use std::fmt;
 use parse::xml_string_to_bookmark;
 use serde::{Deserialize, Serialize};
 use clap::Subcommand;
+use urlencoding::encode;
 use open;
 use ron;
 
@@ -61,7 +62,7 @@ impl fmt::Display for Bookmark {
         match &self.content {
             Content::Folder(_) => write!(f, "{} [...]", self.title),
             Content::Link(link) => write!(f, "{} [{}]", self.title, link),
-            Content::Search(_) => write!(f, "{} [not implemented yet!]", self.title),
+            Content::Search(search_engine) => write!(f, "{} [{}]", self.title, search_engine),
         }
     }
 }
@@ -94,7 +95,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             println!("Added {} to {}", &url, &config.db.to_string_lossy());
         },
         Action::Go => {
-            let root = load(&config.db)?;
+            let mut root = load(&config.db)?;
+            let google = Bookmark::new_search("Google".into(), "http://www.google.com/search?q=%s".into());
+            root.add(google)?;
             root.prompt();
         },
     }
@@ -114,6 +117,11 @@ pub fn goto(arg: impl fmt::Display + std::convert::AsRef<std::ffi::OsStr>) {
     open::that(arg).unwrap();
 }
 
+pub fn search(url: &str, query: &str) -> String {
+    let url = url.to_string();
+    let encoded_query = encode(query);
+    url.replace("%s", &encoded_query)
+}
 
 impl Bookmark {
     pub fn new() -> Self {
@@ -122,6 +130,10 @@ impl Bookmark {
 
     pub fn new_link(title: String, content: String) -> Self {
         Bookmark { title, content: Content::Link(content) }
+    }
+
+    pub fn new_search(title: String, content: String) -> Self {
+        Bookmark { title, content: Content::Search(content) }
     }
     pub fn prompt(&self) {
         match &self.content {
@@ -136,7 +148,13 @@ impl Bookmark {
                 bookmark.prompt();
             },
             Content::Link(link) => goto(link),
-            Content::Search(search) => goto(search),
+            Content::Search(search_engine) => {
+                let input = Input::<String>::new()
+                    .interact_text()
+                    .unwrap();
+                let link = search(search_engine, &input);
+                goto(link);
+            },
         };
     }
 
