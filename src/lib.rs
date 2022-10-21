@@ -39,6 +39,7 @@ pub enum Action {
     /// Adds a new bookmark to the db
     Add {
         url: String,
+        title: Option<String>,
     },
 
     Go
@@ -87,17 +88,25 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             save(&config.db, &bookmark)?;
             println!("Imported {} to {}", &path.to_string_lossy(), &config.db.to_string_lossy());
         },
-        Action::Add{url} => {
+        Action::Add{url, title} => {
             let mut root = load(&config.db)?;
-            let bookmark = Bookmark::new_link("New Bookmark".into(), url.clone());
+            let title = match title {
+                Some(title) => {
+                    title
+                },
+                None => "New Bookmark".into()
+            };
+            let bookmark = if url.contains("%s") {
+                Bookmark::new_search(title, url.clone())
+            } else {
+                Bookmark::new_link(title, url.clone())
+            };
             root.add(bookmark)?;
             save(&config.db, &root)?;
             println!("Added {} to {}", &url, &config.db.to_string_lossy());
         },
         Action::Go => {
-            let mut root = load(&config.db)?;
-            let google = Bookmark::new_search("Google".into(), "http://www.google.com/search?q=%s".into());
-            root.add(google)?;
+            let root = load(&config.db)?;
             root.prompt();
         },
     }

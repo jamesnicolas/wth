@@ -13,4 +13,5 @@ open = "3.0.3"
 ron = "0.8"
 roxmltree = "0.15.0"
 serde = { version = "1.0.145", features = ["derive"] }
+serde_yaml = "0.9.13"
 urlencoding = "2.1.2"
