@@ -142,7 +142,7 @@ pub fn search(url: &str, query: &str) -> String {
 }
 
 impl Bookmark {
-    pub fn new() -> Self {
+    pub fn new_folder() -> Self {
         Bookmark { title: "".into(), content: Content::Folder(vec!()) }
     }
 
@@ -152,6 +152,10 @@ impl Bookmark {
 
     pub fn new_search(title: String, content: String) -> Self {
         Bookmark { title, content: Content::TextInput(content) }
+    }
+
+    pub fn new_multi_text_input(title: String, template: String, content: Vec<Dimension>) -> Self {
+        Bookmark { title, content: Content::MultiTextInput(template, content) }
     }
     pub fn prompt(&self) {
         match &self.content {
@@ -179,9 +183,10 @@ impl Bookmark {
                 let mut fragments = dimensions.iter();
                 for separator in separators {
                     url.push(separator);
-                    let dimension = fragments.next().unwrap(); // TODO: handle cases when
-                                                                     // they're not all the same
-                                                                     // length
+                    let dimension = match fragments.next() {
+                        Some(dimension) => dimension,
+                        None => break,
+                    };
                     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt(&dimension.title)
                         .default(0)
@@ -206,3 +211,13 @@ impl Bookmark {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use crate::Bookmark;
+    #[test]
+    fn basic() {
+        let mut root = Bookmark::new_folder();
+        let link = Bookmark::new_link("my link".into(), "https://www.jamesnicolas.com".into());
+        root.add(link).unwrap();
+    }
+}

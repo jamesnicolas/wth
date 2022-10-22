@@ -11,7 +11,7 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
         Ok(doc) => document = doc,
         Err(error) => return Err(error.to_string()),
     }
-    let mut root = Bookmark::new();
+    let mut root = Bookmark::new_folder();
 
     fn set_title(bookmark: &mut Bookmark, xml_node: &roxmltree::Node, default: &str) {
         if let roxmltree::NodeType::Element = xml_node.node_type() {
@@ -31,7 +31,7 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
     }
 
     fn h3_dl_to_bookmark(h3_node: roxmltree::Node, dl_node: roxmltree::Node) -> Bookmark {
-        let mut bookmark = Bookmark::new();
+        let mut bookmark = Bookmark::new_folder();
         set_title(&mut bookmark, &h3_node, "undefined");
         traverse_children(&mut dl_node.children(), &mut bookmark);
         bookmark
