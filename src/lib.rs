@@ -19,7 +19,8 @@ use ron;
 pub enum Content {
     Folder(Vec<Bookmark>),
     Link(String),
-    Search(String),
+    TextInput(String),
+    MultiTextInput(String, Vec<Dimension>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,6 +29,11 @@ pub struct Bookmark {
     content: Content,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Dimension {
+    title: String,
+    points: Vec<String>,
+}
 
 #[derive(Subcommand)]
 pub enum Action {
@@ -63,7 +69,10 @@ impl fmt::Display for Bookmark {
         match &self.content {
             Content::Folder(_) => write!(f, "{} [...]", self.title),
             Content::Link(link) => write!(f, "{} [{}]", self.title, link),
-            Content::Search(search_engine) => write!(f, "{} [{}]", self.title, search_engine),
+            Content::TextInput(search_engine) => write!(f, "{} [{}]", self.title, search_engine),
+            Content::MultiTextInput(template, dimensions) => {
+                write!(f, "{} {} [{}]", self.title, template, dimensions.iter().map(|dimension| dimension.title.clone()).collect::<Vec<String>>().join("]["))
+            }
         }
     }
 }
@@ -142,7 +151,7 @@ impl Bookmark {
     }
 
     pub fn new_search(title: String, content: String) -> Self {
-        Bookmark { title, content: Content::Search(content) }
+        Bookmark { title, content: Content::TextInput(content) }
     }
     pub fn prompt(&self) {
         match &self.content {
@@ -157,12 +166,31 @@ impl Bookmark {
                 bookmark.prompt();
             },
             Content::Link(link) => goto(link),
-            Content::Search(search_engine) => {
+            Content::TextInput(search_engine) => {
                 let input = Input::<String>::new()
                     .interact_text()
                     .unwrap();
                 let link = search(search_engine, &input);
                 goto(link);
+            },
+            Content::MultiTextInput(template, dimensions) => {
+                let separators = template.split("%s");
+                let mut url = vec![];
+                let mut fragments = dimensions.iter();
+                for separator in separators {
+                    url.push(separator);
+                    let dimension = fragments.next().unwrap(); // TODO: handle cases when
+                                                                     // they're not all the same
+                                                                     // length
+                    let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
+                        .with_prompt(&dimension.title)
+                        .default(0)
+                        .items(&dimension.points)
+                        .interact()
+                        .unwrap();
+                    url.push(&dimension.points[selection]);
+                }
+                goto(url.join(""));
             },
         };
     }
