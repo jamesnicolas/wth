@@ -157,6 +157,7 @@ impl Bookmark {
     pub fn new_multi_text_input(title: String, template: String, content: Vec<Dimension>) -> Self {
         Bookmark { title, content: Content::MultiTextInput(template, content) }
     }
+
     pub fn prompt(&self) {
         match &self.content {
             Content::Folder(folder) => {
@@ -209,6 +210,18 @@ impl Bookmark {
         };
         Ok(())
     }
+
+    pub fn remove(&mut self, other: &Self) -> Result<(), Box<dyn Error>> {
+        match &mut self.content {
+            Content::Folder(folder) => {
+                folder.retain(|x| {
+                    x.title != other.title
+                })
+            },
+            _ => return Err("Cannot remove from non-folder type".into()),
+        };
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -219,5 +232,7 @@ mod test {
         let mut root = Bookmark::new_folder();
         let link = Bookmark::new_link("my link".into(), "https://www.jamesnicolas.com".into());
         root.add(link).unwrap();
+        let link = Bookmark::new_link("my link".into(), "https://www.jamesnicolas.com".into());
+        root.remove(&link).unwrap();
     }
 }
