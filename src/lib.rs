@@ -23,6 +23,10 @@ pub enum Content {
     MultiTextInput(String, Vec<Dimension>),
 }
 
+fn variant_eq<T>(a: &T, b: &T) -> bool {
+    std::mem::discriminant(a) == std::mem::discriminant(b)
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Bookmark {
     title: String,
@@ -215,7 +219,7 @@ impl Bookmark {
         match &mut self.content {
             Content::Folder(folder) => {
                 folder.retain(|x| {
-                    x.title != other.title
+                    x.title != other.title && variant_eq(&x, &other)
                 })
             },
             _ => return Err("Cannot remove from non-folder type".into()),
