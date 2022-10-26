@@ -9,7 +9,22 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
     let document: roxmltree::Document;
     match roxmltree::Document::parse(&contents) {
         Ok(doc) => document = doc,
-        Err(error) => return Err(error.to_string()),
+        Err(error) => {
+            let lines = contents.split("\n");
+            let pos = error.pos();
+            let mut y = pos.row - 1;
+            let x = pos.col - 1;
+
+            for line in lines {
+                if y == 0 {
+                    println!("{}", line);
+                    println!("{:width$}^", "x", width=x as usize);
+                    break
+                }
+                y -= 1;
+            }
+            return Err(format!("Error parsing xml: {}", error));
+        }
     }
     let mut root = Bookmark::new_folder();
 
