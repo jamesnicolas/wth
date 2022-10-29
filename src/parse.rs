@@ -4,7 +4,8 @@ use roxmltree;
 
 pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
     // TODO: need a more robust replace in case people have weird bookmark titles or something
-    let contents = xml.replace("<DT>","").replace("<p>","");
+    // TODO: Okay html really is not a subset of xml. Sorry future me. stop using an xml parser
+    let contents = xml.replace("<DT>","").replace("<p>","").replace("&","&amp;");
 
     let document: roxmltree::Document;
     match roxmltree::Document::parse(&contents) {
