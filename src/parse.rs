@@ -1,6 +1,30 @@
 use crate::Bookmark;
 use crate::Content;
 use roxmltree;
+use tl;
+
+enum Tag {
+    Root,
+    Heading{title: String},
+    List{title: String},
+    Link{title: String, url: String},
+    Other,
+}
+
+pub fn html_string_to_bookmark(html: String) {
+    let dom = tl::parse(&html, tl::ParserOptions::default()).unwrap();
+    let mut root = Bookmark::new_folder();
+    let mut node_stack: Vec<&tl::Node> = vec![];
+    let mut tag_stack: Vec<Tag> = vec![];
+    tag_stack.push(Tag::Root);
+    loop {
+        if let Some(tag) = tag_stack.last_mut() {
+        } else {
+            break;
+        }
+        let node = node_stack.last_mut();
+    }
+}
 
 pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
     // TODO: need a more robust replace in case people have weird bookmark titles or something
@@ -100,4 +124,13 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
 
     traverse_children(&mut document.root().children(), &mut root);
     return Ok(root)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::parse::html_string_to_bookmark;
+    #[test]
+    fn basic() {
+        html_string_to_bookmark("<p>test".into());
+    }
 }
