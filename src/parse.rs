@@ -2,27 +2,42 @@ use crate::Bookmark;
 use crate::Content;
 use roxmltree;
 use tl;
+use std::collections::HashSet;
 
-enum Tag {
-    Root,
-    Heading{title: String},
-    List{title: String},
-    Link{title: String, url: String},
-    Other,
-}
 
 pub fn html_string_to_bookmark(html: String) {
     let dom = tl::parse(&html, tl::ParserOptions::default()).unwrap();
     let mut root = Bookmark::new_folder();
-    let mut node_stack: Vec<&tl::Node> = vec![];
-    let mut tag_stack: Vec<Tag> = vec![];
-    tag_stack.push(Tag::Root);
+    let mut node_stack: Vec<tl::NodeHandle> = vec![];
+    let mut last_header: Option<tl::NodeHandle> = None;
+    let mut visited = HashSet::new();
+    node_stack.append(&mut dom.children().to_vec());
     loop {
-        if let Some(tag) = tag_stack.last_mut() {
+        if let Some(node) = node_stack.last_mut() {
+            match node.get(dom.parser()).expect("NodeHandle is valid for the parser it originated from") {
+                tl::Node::Tag(tag) => {
+                    let name: String = tag.name().as_utf8_str().into();
+                    match name.as_str() {
+                        "A" => {
+                            let title = tag.inner_text(dom.parser());
+                            let url = tag.attributes().get("HREF").expect("<A> tags have an HREF attribute").expect("HREF attributes are strings");
+                            root.add(Bookmark::new_link(title.to_string(), url.as_utf8_str().to_string())).expect("Bookmarks of type Folder can be appended to");
+                            visited.insert(*node);
+                        },
+                        "DL"=> {
+                            let title = last_header.expect("DL always follows a Header tag").get(dom.parser());
+                        },
+                        "H1" => {},
+                        "DT" | "p" | "META" | "TITLE" => {},
+                        _ => {},
+                    }
+                },
+                tl::Node::Raw(raw) => {},
+                tl::Node::Comment(comment) => {},
+            }
         } else {
             break;
         }
-        let node = node_stack.last_mut();
     }
 }
 
