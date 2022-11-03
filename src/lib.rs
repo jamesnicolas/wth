@@ -146,8 +146,8 @@ pub fn search(url: &str, query: &str) -> String {
 }
 
 impl Bookmark {
-    pub fn new_folder() -> Self {
-        Bookmark { title: "".into(), content: Content::Folder(vec!()) }
+    pub fn new_folder(title: String) -> Self {
+        Bookmark { title, content: Content::Folder(vec!()) }
     }
 
     pub fn new_link(title: String, content: String) -> Self {
@@ -233,7 +233,7 @@ mod test {
     use crate::Bookmark;
     #[test]
     fn basic() {
-        let mut root = Bookmark::new_folder();
+        let mut root = Bookmark::new_folder("".to_string());
         let link = Bookmark::new_link("my link".into(), "https://www.jamesnicolas.com".into());
         root.add(link).unwrap();
         let link = Bookmark::new_link("my link".into(), "https://www.jamesnicolas.com".into());

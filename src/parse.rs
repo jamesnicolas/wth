@@ -7,36 +7,51 @@ use std::collections::HashSet;
 
 pub fn html_string_to_bookmark(html: String) {
     let dom = tl::parse(&html, tl::ParserOptions::default()).unwrap();
-    let mut root = Bookmark::new_folder();
+    let mut bookmark_stack = vec![Bookmark::new_folder("".to_string())];
     let mut node_stack: Vec<tl::NodeHandle> = vec![];
     let mut last_header: Option<tl::NodeHandle> = None;
     let mut visited = HashSet::new();
-    node_stack.append(&mut dom.children().to_vec());
-    loop {
-        if let Some(node) = node_stack.last_mut() {
-            match node.get(dom.parser()).expect("NodeHandle is valid for the parser it originated from") {
-                tl::Node::Tag(tag) => {
-                    let name: String = tag.name().as_utf8_str().into();
-                    match name.as_str() {
-                        "A" => {
-                            let title = tag.inner_text(dom.parser());
-                            let url = tag.attributes().get("HREF").expect("<A> tags have an HREF attribute").expect("HREF attributes are strings");
-                            root.add(Bookmark::new_link(title.to_string(), url.as_utf8_str().to_string())).expect("Bookmarks of type Folder can be appended to");
-                            visited.insert(*node);
-                        },
-                        "DL"=> {
-                            let title = last_header.expect("DL always follows a Header tag").get(dom.parser());
-                        },
-                        "H1" => {},
-                        "DT" | "p" | "META" | "TITLE" => {},
-                        _ => {},
-                    }
-                },
-                tl::Node::Raw(raw) => {},
-                tl::Node::Comment(comment) => {},
+    let children = dom.children().to_vec();
+    for child in children {
+        node_stack.push(child);
+        loop {
+            if let Some(node) = node_stack.pop() {
+                match node.get(dom.parser()).expect("NodeHandle is valid for the parser it originated from") {
+                    tl::Node::Tag(tag) => {
+                        let name: String = tag.name().as_utf8_str().into();
+                        match name.as_str() {
+                            "A" => {
+                                let title = tag.inner_text(dom.parser());
+                                let url = tag.attributes().get("HREF").expect("<A> tags have an HREF attribute").expect("HREF attributes are strings");
+                                bookmark_stack.last_mut().expect("The bookmark stack is non-empty while parsing")
+                                    .add(Bookmark::new_link(title.to_string(), url.as_utf8_str().to_string())).expect("Bookmarks of type Folder can be appended to");
+                                visited.insert(node);
+                            },
+                            "DL"=> {
+                                let title = last_header.expect("DL always follows a Header tag").get(dom.parser())
+                                    .expect("Header tags have inner text").inner_text(dom.parser());
+                                bookmark_stack.push(Bookmark::new_folder(title.to_string()));
+                            },
+                            "H1" | "H3" => {
+                                last_header = Some(node);
+                                continue;
+                            },
+                            "DT" | "p" | "META" | "TITLE" => {
+                                let children = node.get(dom.parser())
+                                    .expect("NodeHandle is valid for the parser it originated from")
+                                    .children()
+                                    .expect("This is a Node::Tag");
+                                node_stack.append(&mut children.top().to_vec().into_iter().rev().collect());
+                                continue;
+                            },
+                            _ => continue,
+                        };
+                    },
+                    _ => continue,
+                }
+            } else {
+                break;
             }
-        } else {
-            break;
         }
     }
 }
@@ -66,7 +81,7 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
             return Err(format!("Error parsing xml: {}", error));
         }
     }
-    let mut root = Bookmark::new_folder();
+    let mut root = Bookmark::new_folder("".to_string());
 
     fn set_title(bookmark: &mut Bookmark, xml_node: &roxmltree::Node, default: &str) {
         if let roxmltree::NodeType::Element = xml_node.node_type() {
@@ -86,7 +101,7 @@ pub fn xml_string_to_bookmark(xml: String) -> Result<Bookmark, String> {
     }
 
     fn h3_dl_to_bookmark(h3_node: roxmltree::Node, dl_node: roxmltree::Node) -> Bookmark {
-        let mut bookmark = Bookmark::new_folder();
+        let mut bookmark = Bookmark::new_folder("".to_string());
         set_title(&mut bookmark, &h3_node, "undefined");
         traverse_children(&mut dl_node.children(), &mut bookmark);
         bookmark
