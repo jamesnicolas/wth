@@ -163,4 +163,9 @@ mod test {
     fn basic() {
         html_string_to_bookmark("<p>test".into());
     }
+
+    #[test]
+    fn basic2() {
+        html_string_to_bookmark("<p>test</p>".into());
+    }
 }
