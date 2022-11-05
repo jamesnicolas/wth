@@ -162,6 +162,21 @@ impl Bookmark {
         Bookmark { title, content: Content::MultiTextInput(template, content) }
     }
 
+    pub fn prompt_edit(&mut self) {
+        match &mut self.content {
+            Content::Link(_) => {
+                let input = Input::<String>::new()
+                    .interact_text()
+                    .unwrap();
+                self.content = Content::Link(input);
+            },
+            Content::TextInput(_) => todo!(),
+            Content::Folder(_) => todo!(),
+            Content::MultiTextInput(..) => todo!(),
+        }
+    }
+
+
     pub fn prompt(&self) {
         match &self.content {
             Content::Folder(folder) => {
