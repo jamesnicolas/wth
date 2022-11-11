@@ -12,6 +12,21 @@ enum TagTypu {
     Comment,
     Other,
 }
+
+impl TagTypu {
+    fn from_string(s: String) -> Self {
+        match s.as_str() {
+            "H1" | "h1" => Heading1,
+            "H3" | "h3" => Heading3,
+            "TITLE" | "title" => Title,
+            "DT" | "dt" => DataTable,
+            "DL" | "dl" => DataList,
+            "A" | "a" => Anchor,
+            "P" | "p" => Paragraph,
+            _ => Other,
+        }
+    }
+}
 struct Tag {
     typu: TagTypu,
     href: Option<String>,
@@ -34,6 +49,7 @@ enum LexToken {
     DocType(String),
 }
 
+#[derive(Debug, Clone)]
 struct Pos {
     col: u32,
     row: u32,
@@ -54,16 +70,19 @@ struct LexError {
 
 impl fmt::Display for LexError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "LexError: {} at {}", self.message, self.pos)?;
+        let res = write!(f, "LexError: {} at {}", self.message, self.pos);
         if let Some(context) = self.context {
             write!(f, "{}\n", context);
-            write!(f, "{:width$}^\n", width=self.pos.col as usize)
+            write!(f, "{width:width$}^\n", width=self.pos.col as usize)
+        } else {
+            res
         }
     }
 }
 
-fn get_open_tag_start<T: Iterator<Item = char>>(iter: &mut Peekable<T>) -> Result<LexToken, LexError> {
+fn get_tag<T: Iterator<Item = char>>(iter: &mut Peekable<T>) -> Result<LexToken, LexError> {
     let tag_name: [char; 3] = ['\0';3];
+    let open = true;
     let index: usize = 0;
     while let Some(c) = iter.peek() {
         assert_eq!(index < 3, true);
@@ -72,27 +91,36 @@ fn get_open_tag_start<T: Iterator<Item = char>>(iter: &mut Peekable<T>) -> Resul
                 tag_name[index] = '\0';
                 break;
             },
+            '/' => {
+                open = false;
+                break;
+            },
             _ => {
-                tag_name[index] = c;
-            }
+                tag_name[index] = *c;
+            },
         }
     }
+    let tag_name: String = tag_name[0..index].iter().collect();
+    let tag_type = TagTypu::from_string(tag_name);
+    Ok(LexToken::OpenTagStart(tag_type))
 }
 
 pub fn lex_tokens(content: String) -> Vec<LexToken> {
-    let char_stack = Vec::new();
-    let mode = Mode::Opening;
-    let mut iter = content.chars();
     let mut result = Vec::new();
-
-    let mut it = input.chars().peekable();
+    let mut it = content.chars().peekable();
     while let Some(&c) = it.peek() {
         match c {
             '<' => {
-                result.push(LexToken::OpenTag(n));
+                if let Ok(token) = get_tag(&mut it) {
+                    result.push(token);
+                }
+            }
+            '>' => {
+                result.push(LexToken::OpenTagEnd);
             }
         }
     }
+    result
 }
 
 #[cfg(test)]
