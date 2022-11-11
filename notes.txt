@@ -106,3 +106,24 @@ but let them know it might get overwritten by wth
 let's create an "add bookmark" feature
 
 also i thjink i realized we should have two different types, bookmarks, and bookmark folders
+
+alright so i decided to write my own parser. read about lexers and parsers and
+i think roughly it goes like, lexers convert the text into a list of tokens. so
+in our case, the lexer will create a few tokens like the open tag token, the
+attribute token, etc. then these tokens are just all listed in order. now the
+parser goes through these tokens and turns them into an actual nested
+structure, like our bookmarks.
+
+for tags, I had these tokens:
+
+- OpenTagStart, for example "<A", but the token just stores A
+- AttributeKey, which is anything after OpenTagStart, but right before an =
+- AttributeValue, which is anything after the = following AttributeKey
+- OpenTagEnd, which is ">"
+- ClosingTag,
+
+but I forgot about self closing tags, and also the lexer I wrote for
+OpenTagStart doesn't take into account that closing tags also start with <
+
+so next time I have to consider those things and fix the lexer, and also write
+the rest of the lexer for all other token types.
