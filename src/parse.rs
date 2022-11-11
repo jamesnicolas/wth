@@ -4,7 +4,6 @@ use roxmltree;
 use tl;
 use std::collections::HashSet;
 
-
 pub fn html_string_to_bookmark(html: String) {
     let dom = tl::parse(&html, tl::ParserOptions::default()).unwrap();
     let mut bookmark_stack = vec![Bookmark::new_folder("".to_string())];

@@ -1,6 +1,7 @@
 use dialoguer::{theme::ColorfulTheme, FuzzySelect, Input};
 
 pub mod parse;
+pub mod parse2;
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
